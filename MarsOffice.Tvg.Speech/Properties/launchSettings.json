@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MarsOffice.Tvg.Speech": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7002"
+    }
+  }
+}
