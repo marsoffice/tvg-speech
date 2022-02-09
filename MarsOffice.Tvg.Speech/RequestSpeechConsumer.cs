@@ -1,23 +1,22 @@
 using System;
-using System.Net.Http;
 using System.Threading.Tasks;
 using MarsOffice.Tvg.Speech.Abstractions;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.CognitiveServices.Speech;
+using Microsoft.CognitiveServices.Speech.Audio;
 
 namespace MarsOffice.Tvg.Speech
 {
     public class RequestSpeechConsumer
     {
         private readonly IConfiguration _config;
-        private readonly HttpClient _httpClient;
+        private readonly SpeechConfig _speechConfig;
 
-        public RequestSpeechConsumer(IConfiguration config, IHttpClientFactory httpClientFactory)
+        public RequestSpeechConsumer(IConfiguration config)
         {
             _config = config;
-            _httpClient = httpClientFactory.CreateClient();
         }
 
         [FunctionName("RequestSpeechConsumer")]
@@ -28,6 +27,14 @@ namespace MarsOffice.Tvg.Speech
         {
             try
             {
+                var speechConfig = SpeechConfig.FromSubscription(_config["speechkey"], _config["location"].Replace(" ", "").ToLower());
+                speechConfig.SpeechSynthesisLanguage = request.SpeechLanguage;
+                speechConfig.SpeechSynthesisVoiceName = request.SpeechType;
+                speechConfig.SetProfanity(ProfanityOption.Masked);
+                speechConfig.OutputFormat = OutputFormat.Detailed;
+                speechConfig.RequestWordLevelTimestamps();
+                speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3);
+                
 
             } catch (Exception e)
             {

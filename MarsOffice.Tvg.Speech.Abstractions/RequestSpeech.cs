@@ -13,7 +13,6 @@ namespace MarsOffice.Tvg.Speech.Abstractions
         public IEnumerable<string> Sentences { get; set; }
         public float? SpeechPitch { get; set; }
         public float? SpeechSpeed { get; set; }
-        public string SpeechLanguage { get; set; }
         public string SpeechType { get; set; }
         public long? SpeechPauseBeforeInMillis { get; set; }
         public long? SpeechPauseAfterInMillis { get; set; }
