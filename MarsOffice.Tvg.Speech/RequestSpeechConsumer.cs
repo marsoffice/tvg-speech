@@ -30,7 +30,7 @@ namespace MarsOffice.Tvg.Speech
             try
             {
                 var speechConfig = SpeechConfig.FromSubscription(_config["speechkey"], _config["location"].Replace(" ", "").ToLower());
-                speechConfig.SpeechSynthesisLanguage = request.SpeechLanguage;
+                speechConfig.SpeechSynthesisLanguage = request.SpeechLanguage ?? "en-US";
                 if (!string.IsNullOrEmpty(request.SpeechType))
                 {
                     speechConfig.SpeechSynthesisVoiceName = request.SpeechType;
