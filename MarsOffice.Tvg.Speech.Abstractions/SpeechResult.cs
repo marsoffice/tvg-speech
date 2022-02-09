@@ -13,5 +13,7 @@ namespace MarsOffice.Tvg.Speech.Abstractions
         public string FileLink { get; set; }
         public IEnumerable<long> IndividualDurationsInMillis { get; set; }
         public long TotalDurationInMillis { get; set; }
+        public bool Success { get; set; }
+        public string Error { get; set; }
     }
 }
