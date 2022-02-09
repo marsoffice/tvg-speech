@@ -35,5 +35,25 @@ namespace MarsOffice.Tvg.Speech
                 return new BadRequestObjectResult(Errors.Extract(e));
             }
         }
+
+        [FunctionName("GetAllSpeechLanguages")]
+        public async Task<IActionResult> GetAllSpeechLanguages(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/speech/getAllSpeechLanguages")] HttpRequest req,
+            ILogger log
+            )
+        {
+            try
+            {
+                return new OkObjectResult(new[] {
+                    "ro-RO",
+                    "en-US"
+                });
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "Exception occured in function");
+                return new BadRequestObjectResult(Errors.Extract(e));
+            }
+        }
     }
 }
