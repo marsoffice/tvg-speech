@@ -21,7 +21,7 @@ namespace MarsOffice.Tvg.Speech
 
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            
+            builder.Services.AddHttpClient();
         }
     }
 }

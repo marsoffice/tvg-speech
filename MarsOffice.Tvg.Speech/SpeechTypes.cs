@@ -24,9 +24,6 @@ namespace MarsOffice.Tvg.Speech
         {
             try
             {
-                var principal = MarsOfficePrincipal.Parse(req);
-                var userId = principal.FindFirst("id").Value;
-
                 return new OkObjectResult(new[] { 
                     "Jane",
                     "Victor"
