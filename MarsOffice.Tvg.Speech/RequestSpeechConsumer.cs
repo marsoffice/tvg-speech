@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
+using System.IO;
 
 namespace MarsOffice.Tvg.Speech
 {
@@ -23,19 +24,31 @@ namespace MarsOffice.Tvg.Speech
         public async Task Run(
             [QueueTrigger("request-speech", Connection = "localsaconnectionstring")]RequestSpeech request,
             [Queue("speech-result", Connection = "localsaconnectionstring")] IAsyncCollector<SpeechResult> speechResultQueue,
+            
             ILogger log)
         {
             try
             {
                 var speechConfig = SpeechConfig.FromSubscription(_config["speechkey"], _config["location"].Replace(" ", "").ToLower());
                 speechConfig.SpeechSynthesisLanguage = request.SpeechLanguage;
-                speechConfig.SpeechSynthesisVoiceName = request.SpeechType;
+                if (!string.IsNullOrEmpty(request.SpeechType))
+                {
+                    speechConfig.SpeechSynthesisVoiceName = request.SpeechType;
+                }
                 speechConfig.SetProfanity(ProfanityOption.Masked);
                 speechConfig.OutputFormat = OutputFormat.Detailed;
                 speechConfig.RequestWordLevelTimestamps();
                 speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3);
-                
 
+                using var synthesizer = new SpeechSynthesizer(speechConfig, null);
+                var i = 0;
+
+                foreach (var sentence in request.Sentences)
+                {
+                    var result = await synthesizer.SpeakTextAsync(sentence);
+
+                    i++;
+                }
             } catch (Exception e)
             {
                 log.LogError(e, "Function threw an exception");
