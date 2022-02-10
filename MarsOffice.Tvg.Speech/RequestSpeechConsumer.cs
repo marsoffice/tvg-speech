@@ -36,8 +36,7 @@ namespace MarsOffice.Tvg.Speech
                     speechConfig.SpeechSynthesisVoiceName = request.SpeechType;
                 }
                 speechConfig.SetProfanity(ProfanityOption.Masked);
-                speechConfig.OutputFormat = OutputFormat.Detailed;
-                speechConfig.RequestWordLevelTimestamps();
+                speechConfig.OutputFormat = OutputFormat.Simple;
                 speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3);
 
                 using var synthesizer = new SpeechSynthesizer(speechConfig, null);
@@ -49,6 +48,7 @@ namespace MarsOffice.Tvg.Speech
 
                     i++;
                 }
+                i.ToString();
             } catch (Exception e)
             {
                 log.LogError(e, "Function threw an exception");
