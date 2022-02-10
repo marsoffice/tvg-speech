@@ -51,6 +51,9 @@ namespace MarsOffice.Tvg.Speech
                 speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3);
 
                 using var synthesizer = new SpeechSynthesizer(speechConfig, null);
+                synthesizer.Properties.SetProperty(PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, $"{request.SpeechPauseBeforeInMillis ?? 1000}");
+                synthesizer.Properties.SetProperty(PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, $"{request.SpeechPauseAfterInMillis ?? 1000}");
+
                 tempFolderName = Path.GetTempPath() + Guid.NewGuid().ToString();
                 Directory.CreateDirectory(tempFolderName);
 
