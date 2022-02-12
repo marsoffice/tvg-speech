@@ -137,7 +137,7 @@ namespace MarsOffice.Tvg.Speech
                     UserId = request.UserId,
                     IndividualDurationsInMillis = durations,
                     TotalDurationInMillis = durations.Sum(),
-                    FileLink = blobReference.StorageUri.PrimaryUri.ToString()
+                    FileLink = $"jobsdata/{request.JobId}/tts.mp3"
                 });
                 await speechResultQueue.FlushAsync();
             }
