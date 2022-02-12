@@ -22,12 +22,13 @@ namespace MarsOffice.Tvg.Speech
     {
         private readonly IConfiguration _config;
         private readonly CloudBlobClient _blobClient;
+        private readonly CloudStorageAccount _cloudStorageAccount;
 
         public RequestSpeechConsumer(IConfiguration config)
         {
             _config = config;
-            var cloudStorageAccount = CloudStorageAccount.Parse(_config["localsaconnectionstring"]);
-            _blobClient = cloudStorageAccount.CreateCloudBlobClient();
+            _cloudStorageAccount = CloudStorageAccount.Parse(_config["localsaconnectionstring"]);
+            _blobClient = _cloudStorageAccount.CreateCloudBlobClient();
         }
 
         [FunctionName("RequestSpeechConsumer")]
@@ -128,6 +129,16 @@ namespace MarsOffice.Tvg.Speech
                 blobReference.Metadata.Add("TotalDurationInMillis", durations.Sum().ToString());
                 await blobReference.SetMetadataAsync();
 
+                var sas = _cloudStorageAccount.GetSharedAccessSignature(new SharedAccessAccountPolicy
+                {
+                    Permissions = SharedAccessAccountPermissions.Read,
+                    Protocols = SharedAccessProtocol.HttpsOnly,
+                    SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddHours(1),
+                    ResourceTypes = SharedAccessAccountResourceTypes.Object,
+                    Services = SharedAccessAccountServices.Blob,
+                    SharedAccessStartTime = DateTimeOffset.UtcNow
+                });
+
                 await speechResultQueue.AddAsync(new SpeechResult
                 {
                     Success = true,
@@ -137,7 +148,7 @@ namespace MarsOffice.Tvg.Speech
                     UserId = request.UserId,
                     IndividualDurationsInMillis = durations,
                     TotalDurationInMillis = durations.Sum(),
-                    FileLink = $"jobsdata/{request.VideoId}/tts.mp3"
+                    FileLink = blobReference.Uri.ToString() + sas
                 });
                 await speechResultQueue.FlushAsync();
             }
