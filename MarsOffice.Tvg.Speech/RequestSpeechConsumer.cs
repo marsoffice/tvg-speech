@@ -22,13 +22,12 @@ namespace MarsOffice.Tvg.Speech
     {
         private readonly IConfiguration _config;
         private readonly CloudBlobClient _blobClient;
-        private readonly CloudStorageAccount _cloudStorageAccount;
 
         public RequestSpeechConsumer(IConfiguration config)
         {
             _config = config;
-            _cloudStorageAccount = CloudStorageAccount.Parse(_config["localsaconnectionstring"]);
-            _blobClient = _cloudStorageAccount.CreateCloudBlobClient();
+            var cloudStorageAccount = CloudStorageAccount.Parse(_config["localsaconnectionstring"]);
+            _blobClient = cloudStorageAccount.CreateCloudBlobClient();
         }
 
         [FunctionName("RequestSpeechConsumer")]
@@ -122,22 +121,12 @@ namespace MarsOffice.Tvg.Speech
                 await blobContainerReference.CreateIfNotExistsAsync();
 #endif
                 var blobReference = blobContainerReference.GetBlockBlobReference($"{request.VideoId}/tts.mp3");
-           
+
                 await blobReference.UploadFromFileAsync(tempFolderName + "/output.mp3");
 
                 blobReference.Metadata.Add("IndividualDurationsInMillis", string.Join(",", durations));
                 blobReference.Metadata.Add("TotalDurationInMillis", durations.Sum().ToString());
                 await blobReference.SetMetadataAsync();
-
-                var sas = _cloudStorageAccount.GetSharedAccessSignature(new SharedAccessAccountPolicy
-                {
-                    Permissions = SharedAccessAccountPermissions.Read,
-                    Protocols = SharedAccessProtocol.HttpsOnly,
-                    SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddHours(1),
-                    ResourceTypes = SharedAccessAccountResourceTypes.Object,
-                    Services = SharedAccessAccountServices.Blob,
-                    SharedAccessStartTime = DateTimeOffset.UtcNow
-                });
 
                 await speechResultQueue.AddAsync(new SpeechResult
                 {
@@ -148,7 +137,7 @@ namespace MarsOffice.Tvg.Speech
                     UserId = request.UserId,
                     IndividualDurationsInMillis = durations,
                     TotalDurationInMillis = durations.Sum(),
-                    FileLink = blobReference.Uri.ToString() + sas
+                    FileLink = $"jobsdata/{request.VideoId}/tts.mp3"
                 });
                 await speechResultQueue.FlushAsync();
             }
