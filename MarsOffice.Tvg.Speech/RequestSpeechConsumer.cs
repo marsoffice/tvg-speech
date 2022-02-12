@@ -120,7 +120,7 @@ namespace MarsOffice.Tvg.Speech
 #if DEBUG
                 await blobContainerReference.CreateIfNotExistsAsync();
 #endif
-                var blobReference = blobContainerReference.GetBlockBlobReference($"{request.JobId}/tts.mp3");
+                var blobReference = blobContainerReference.GetBlockBlobReference($"{request.VideoId}/tts.mp3");
            
                 await blobReference.UploadFromFileAsync(tempFolderName + "/output.mp3");
 
@@ -137,7 +137,7 @@ namespace MarsOffice.Tvg.Speech
                     UserId = request.UserId,
                     IndividualDurationsInMillis = durations,
                     TotalDurationInMillis = durations.Sum(),
-                    FileLink = $"jobsdata/{request.JobId}/tts.mp3"
+                    FileLink = $"jobsdata/{request.VideoId}/tts.mp3"
                 });
                 await speechResultQueue.FlushAsync();
             }
