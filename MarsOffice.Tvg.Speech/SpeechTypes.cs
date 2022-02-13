@@ -1,24 +1,34 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using MarsOffice.Microfunction;
+using MarsOffice.Tvg.Speech.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.CognitiveServices.Speech;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace MarsOffice.Tvg.Speech
 {
     public class SpeechTypes
     {
-        private readonly SpeechSynthesizer _synth;
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _config;
+        private readonly string _baseUrl;
 
-        public SpeechTypes(IConfiguration config)
+        public SpeechTypes(IConfiguration config, IHttpClientFactory httpClientFactory)
         {
-            _synth = new SpeechSynthesizer(SpeechConfig.FromSubscription(config["speechkey"], config["location"].Replace(" ", "").ToLower()), null);
+            _config = config;
+            _httpClient = httpClientFactory.CreateClient();
+            _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _config["speechkey"]);
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", ".NetCore");
+            _baseUrl = $"https://{_config["location"].Replace(" ", "").ToLower()}.tts.speech.microsoft.com/cognitiveservices";
         }
 
         [FunctionName("GetAllSpeechTypes")]
@@ -34,9 +44,15 @@ namespace MarsOffice.Tvg.Speech
                 {
                     throw new Exception("Invalid locale");
                 }
-                var voices = await _synth.GetVoicesAsync(locale);
+                var voicesResponse = await _httpClient.GetAsync(_baseUrl + "/voices/list");
+                voicesResponse.EnsureSuccessStatusCode();
+                var voicesJson = await voicesResponse.Content.ReadAsStringAsync();
+                var voices = JsonConvert.DeserializeObject<IEnumerable<AzureTtsVoice>>(voicesJson, new JsonSerializerSettings
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                });
                 return new OkObjectResult(
-                    voices.Voices.Select(x => x.ShortName).Distinct().OrderBy(x => x).ToList()
+                    voices.Where(x => x.Locale.ToLower() == locale.ToLower()).Select(x => x.ShortName).Distinct().OrderBy(x => x).ToList()
                     );
             }
             catch (Exception e)
@@ -54,9 +70,14 @@ namespace MarsOffice.Tvg.Speech
         {
             try
             {
-                var voices = await _synth.GetVoicesAsync();
+                var voicesResponse = await _httpClient.GetAsync(_baseUrl + "/voices/list");
+                voicesResponse.EnsureSuccessStatusCode();
+                var voicesJson = await voicesResponse.Content.ReadAsStringAsync();
+                var voices = JsonConvert.DeserializeObject<IEnumerable<AzureTtsVoice>>(voicesJson, new JsonSerializerSettings { 
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                });
                 return new OkObjectResult(
-                    voices.Voices.Select(x => x.ShortName).Distinct().OrderBy(x => x).ToList()
+                    voices.Select(x => x.ShortName).Distinct().OrderBy(x => x).ToList()
                     );
             }
             catch (Exception e)
@@ -74,8 +95,16 @@ namespace MarsOffice.Tvg.Speech
         {
             try
             {
-                var voices = await _synth.GetVoicesAsync();
-                return new OkObjectResult(voices.Voices.Select(x => x.Locale).Distinct().OrderBy(x => x).ToList());
+                var voicesResponse = await _httpClient.GetAsync(_baseUrl + "/voices/list");
+                voicesResponse.EnsureSuccessStatusCode();
+                var voicesJson = await voicesResponse.Content.ReadAsStringAsync();
+                var voices = JsonConvert.DeserializeObject<IEnumerable<AzureTtsVoice>>(voicesJson, new JsonSerializerSettings
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                });
+                return new OkObjectResult(
+                    voices.Select(x => x.Locale).Distinct().OrderBy(x => x).ToList()
+                    );
             }
             catch (Exception e)
             {

@@ -4,8 +4,8 @@ using MarsOffice.Tvg.Speech.Abstractions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.CognitiveServices.Speech;
-using Microsoft.CognitiveServices.Speech.Audio;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System.IO;
 using System.Diagnostics;
 using System.Collections.Generic;
@@ -15,6 +15,8 @@ using Newtonsoft.Json.Serialization;
 using System.Linq;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
+using System.Net.Http;
+using System.Text;
 
 namespace MarsOffice.Tvg.Speech
 {
@@ -22,12 +24,18 @@ namespace MarsOffice.Tvg.Speech
     {
         private readonly IConfiguration _config;
         private readonly CloudBlobClient _blobClient;
+        private readonly HttpClient _httpClient;
+        private const string _audioFormat = "audio-48khz-192kbitrate-mono-mp3";
 
-        public RequestSpeechConsumer(IConfiguration config)
+        public RequestSpeechConsumer(IConfiguration config, IHttpClientFactory httpClientFactory)
         {
+            _httpClient = httpClientFactory.CreateClient();
             _config = config;
             var cloudStorageAccount = CloudStorageAccount.Parse(_config["localsaconnectionstring"]);
             _blobClient = cloudStorageAccount.CreateCloudBlobClient();
+            _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _config["speechkey"]);
+            _httpClient.DefaultRequestHeaders.Add("X-Microsoft-OutputFormat", _audioFormat);
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", ".NetCore");
         }
 
         [FunctionName("RequestSpeechConsumer")]
@@ -37,22 +45,19 @@ namespace MarsOffice.Tvg.Speech
 
             ILogger log)
         {
+            var baseUrl = $"https://{_config["location"].Replace(" ", "").ToLower()}.tts.speech.microsoft.com/cognitiveservices";
             string tempFolderName = null;
             try
             {
-                var speechConfig = SpeechConfig.FromSubscription(_config["speechkey"], _config["location"].Replace(" ", "").ToLower());
-                speechConfig.SpeechSynthesisLanguage = request.SpeechLanguage ?? "en-US";
-                if (!string.IsNullOrEmpty(request.SpeechType))
+                var voicesResponse = await _httpClient.GetAsync(baseUrl + "/voices/list");
+                voicesResponse.EnsureSuccessStatusCode();
+                var voicesJson = await voicesResponse.Content.ReadAsStringAsync();
+                var voices = JsonConvert.DeserializeObject<IEnumerable<AzureTtsVoice>>(voicesJson, new JsonSerializerSettings
                 {
-                    speechConfig.SpeechSynthesisVoiceName = request.SpeechType;
-                }
-                speechConfig.SetProfanity(ProfanityOption.Masked);
-                speechConfig.OutputFormat = OutputFormat.Simple;
-                speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3);
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                });
 
-                using var synthesizer = new SpeechSynthesizer(speechConfig, null);
-                synthesizer.Properties.SetProperty(PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, $"{request.SpeechPauseBeforeInMillis ?? 1000}");
-                synthesizer.Properties.SetProperty(PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, $"{request.SpeechPauseAfterInMillis ?? 1000}");
+                var voice = voices.Where(x => x.Locale == (request.SpeechLanguage ?? "en-US")).First().ShortName;
 
                 tempFolderName = Path.GetTempPath() + Guid.NewGuid().ToString();
                 Directory.CreateDirectory(tempFolderName);
@@ -63,10 +68,16 @@ namespace MarsOffice.Tvg.Speech
 
                 foreach (var sentence in request.Sentences)
                 {
-                    var result = await synthesizer.SpeakTextAsync(sentence);
+                    var httpResponse = await _httpClient.PostAsync(baseUrl + "/v1", new StringContent(
+                        $"<speak version='1.0' xml:lang='{request.SpeechLanguage ?? "en-US"}'><voice name='{request.SpeechType ?? voice}'>{sentence}</voice></speak>"
+                        , Encoding.UTF8, "application/ssml+xml"));
+                    httpResponse.EnsureSuccessStatusCode();
+                    using var audioStream = await httpResponse.Content.ReadAsStreamAsync();
+
                     var fileName = tempFolderName + "/" + $"{i}.mp3";
                     mp3Files.Add($"{i}.mp3");
-                    await File.WriteAllBytesAsync(fileName, result.AudioData);
+                    using var fileStream = File.OpenWrite(fileName);
+                    await audioStream.CopyToAsync(fileStream);
 
                     var psiFile = new ProcessStartInfo
                     {
