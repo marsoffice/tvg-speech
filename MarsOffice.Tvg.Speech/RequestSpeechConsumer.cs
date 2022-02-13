@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MarsOffice.Tvg.Speech.Abstractions;
 using MarsOffice.Tvg.Speech.Entities;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
@@ -22,10 +23,11 @@ namespace MarsOffice.Tvg.Speech
     {
         private readonly IConfiguration _config;
         private readonly CloudBlobClient _blobClient;
+        private readonly IWebHostEnvironment _env;
         private readonly HttpClient _httpClient;
         private const string _audioFormat = "audio-48khz-192kbitrate-mono-mp3";
 
-        public RequestSpeechConsumer(IConfiguration config, IHttpClientFactory httpClientFactory)
+        public RequestSpeechConsumer(IConfiguration config, IHttpClientFactory httpClientFactory, IWebHostEnvironment env)
         {
             _httpClient = httpClientFactory.CreateClient();
             _config = config;
@@ -34,6 +36,7 @@ namespace MarsOffice.Tvg.Speech
             _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _config["speechkey"]);
             _httpClient.DefaultRequestHeaders.Add("X-Microsoft-OutputFormat", _audioFormat);
             _httpClient.DefaultRequestHeaders.Add("User-Agent", ".NetCore");
+            _env = env;
         }
 
         [FunctionName("RequestSpeechConsumer")]
@@ -82,7 +85,7 @@ namespace MarsOffice.Tvg.Speech
                     
                     var psiFile = new ProcessStartInfo
                     {
-                        FileName = _config["ffprobepath"],
+                        FileName = _env.ContentRootPath + "/" + _config["ffprobepath"],
                         Arguments = $"-i {i}.mp3 -v quiet -print_format json -show_format -hide_banner",
                         UseShellExecute = false,
                         RedirectStandardError = true,
