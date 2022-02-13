@@ -14,8 +14,6 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json.Serialization;
 
 namespace MarsOffice.Tvg.Speech
@@ -68,8 +66,9 @@ namespace MarsOffice.Tvg.Speech
 
                 foreach (var sentence in request.Sentences)
                 {
+                    var filtered = Filter(sentence);
                     var httpResponse = await _httpClient.PostAsync(baseUrl + "/v1", new StringContent(
-                        $"<speak version='1.0' xml:lang='{request.SpeechLanguage ?? "en-US"}'><voice name='{request.SpeechType ?? voice}'><prosody rate='{request.SpeechSpeed ?? 0}%' pitch='{request.SpeechPitch ?? 0}%'>{sentence}</prosody></voice></speak>"
+                        $"<speak version='1.0' xml:lang='{request.SpeechLanguage ?? "en-US"}'><voice name='{request.SpeechType ?? voice}'><prosody rate='{request.SpeechSpeed ?? 0}%' pitch='{request.SpeechPitch ?? 0}%'>{filtered}</prosody></voice></speak>"
                         , Encoding.UTF8, "application/ssml+xml"));
                     httpResponse.EnsureSuccessStatusCode();
                     using var audioStream = await httpResponse.Content.ReadAsStreamAsync();
@@ -179,6 +178,22 @@ namespace MarsOffice.Tvg.Speech
                     log.LogError(ex, "Temp folder deletion failed");
                 }
             }
+        }
+
+        private static string Filter(string sentence)
+        {
+            if (string.IsNullOrEmpty(sentence)) {
+                return sentence;
+            }
+            return sentence
+                .Replace(":)", "")
+                .Replace(":(", "")
+                .Replace(" :D ", "")
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace("[", "")
+                .Replace("]", "")
+                ;
         }
     }
 }
