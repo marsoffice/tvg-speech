@@ -1,22 +1,22 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using MarsOffice.Tvg.Speech.Abstractions;
+using MarsOffice.Tvg.Speech.Entities;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System.IO;
-using System.Diagnostics;
-using System.Collections.Generic;
 using Newtonsoft.Json;
-using MarsOffice.Tvg.Speech.Entities;
 using Newtonsoft.Json.Serialization;
-using System.Linq;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
-using System.Net.Http;
-using System.Text;
+using Newtonsoft.Json.Serialization;
 
 namespace MarsOffice.Tvg.Speech
 {
@@ -78,7 +78,9 @@ namespace MarsOffice.Tvg.Speech
                     mp3Files.Add($"{i}.mp3");
                     using var fileStream = File.OpenWrite(fileName);
                     await audioStream.CopyToAsync(fileStream);
-
+                    fileStream.Close();
+                    audioStream.Close();
+                    
                     var psiFile = new ProcessStartInfo
                     {
                         FileName = _config["ffprobepath"],
