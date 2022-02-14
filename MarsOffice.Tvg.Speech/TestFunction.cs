@@ -20,19 +20,25 @@ namespace MarsOffice.Tvg.Speech
             )
         {
             
-            string cmd = req.Query["cmd"];
+            try {
+                string cmd = req.Query["cmd"];
 
-            var psiFile = new ProcessStartInfo
-            {
-                Arguments = cmd,
-                FileName = "/bin/bash"
-            };
+                var psiFile = new ProcessStartInfo
+                {
+                    Arguments = cmd,
+                    FileName = "/bin/bash"
+                };
+                await Task.CompletedTask;
 
-            var processFile = Process.Start(psiFile);
-            var stdOutFile = processFile.StandardOutput.ReadToEnd();
-            processFile.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds);
+                var processFile = Process.Start(psiFile);
+                var stdOutFile = processFile.StandardOutput.ReadToEnd();
+                processFile.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds);
 
-            return new OkObjectResult(stdOutFile);
+                return new OkObjectResult(stdOutFile);
+            } catch (Exception e) {
+                log.LogError(e, "Test failed");
+                return new BadRequestObjectResult(new {e.Message, e.Data});
+            }
         }
     }
 }
