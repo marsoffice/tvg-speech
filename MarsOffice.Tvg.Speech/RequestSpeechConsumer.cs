@@ -47,6 +47,37 @@ namespace MarsOffice.Tvg.Speech
             string tempFolderName = null;
             try
             {
+
+                #if !DEBUG
+                var chmodPsi1 = new ProcessStartInfo
+                {
+                    Arguments = $"-c \"chmod u+x {_config["ffprobepath"]}\"",
+                    FileName = "/bin/bash",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
+                };
+                var chmod1Process = Process.Start(chmodPsi1);
+                chmod1Process.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds);
+                if (chmod1Process.ExitCode != 0)
+                {
+                    throw new Exception("Could not execute chmod 1");
+                }
+
+                var chmodPsi2 = new ProcessStartInfo
+                {
+                    Arguments = $"-c \"chmod u+x {_config["ffmpegpath"]}\"",
+                    FileName = "/bin/bash",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
+                };
+                var chmod2Process = Process.Start(chmodPsi2);
+                chmod2Process.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds);
+                if (chmod2Process.ExitCode != 0)
+                {
+                    throw new Exception("Could not execute chmod 2");
+                }
+                #endif
+
                 var voicesResponse = await _httpClient.GetAsync(baseUrl + "/voices/list");
                 voicesResponse.EnsureSuccessStatusCode();
                 var voicesJson = await voicesResponse.Content.ReadAsStringAsync();
@@ -79,7 +110,7 @@ namespace MarsOffice.Tvg.Speech
                     await audioStream.CopyToAsync(fileStream);
                     fileStream.Close();
                     audioStream.Close();
-                    
+
                     var psiFile = new ProcessStartInfo
                     {
                         FileName = _config["ffprobepath"],
@@ -182,7 +213,8 @@ namespace MarsOffice.Tvg.Speech
 
         private static string Filter(string sentence)
         {
-            if (string.IsNullOrEmpty(sentence)) {
+            if (string.IsNullOrEmpty(sentence))
+            {
                 return sentence;
             }
             return sentence
