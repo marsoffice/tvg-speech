@@ -28,7 +28,7 @@ namespace MarsOffice.Tvg.Speech
                     Arguments = cmd,
                     FileName = "/bin/bash",
                     RedirectStandardError = true,
-                    RedirectStandardInput = true
+                    RedirectStandardOutput = true
                 };
                 await Task.CompletedTask;
 
