@@ -26,15 +26,18 @@ namespace MarsOffice.Tvg.Speech
                 var psiFile = new ProcessStartInfo
                 {
                     Arguments = cmd,
-                    FileName = "/bin/bash"
+                    FileName = "/bin/bash",
+                    RedirectStandardError = true,
+                    RedirectStandardInput = true
                 };
                 await Task.CompletedTask;
 
                 var processFile = Process.Start(psiFile);
                 var stdOutFile = processFile.StandardOutput.ReadToEnd();
+                var stdOutErrorFile = processFile.StandardError.ReadToEnd();
                 processFile.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds);
 
-                return new OkObjectResult(stdOutFile);
+                return new OkObjectResult(new {Err = stdOutErrorFile , Out = stdOutFile});
             } catch (Exception e) {
                 log.LogError(e, "Test failed");
                 return new BadRequestObjectResult(new {e.Message, e.Data});
