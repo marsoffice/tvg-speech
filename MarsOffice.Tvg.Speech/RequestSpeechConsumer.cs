@@ -82,7 +82,7 @@ namespace MarsOffice.Tvg.Speech
                     
                     var psiFile = new ProcessStartInfo
                     {
-                        FileName = Environment.CurrentDirectory + "/" + _config["ffprobepath"],
+                        FileName = _config["ffprobepath"],
                         Arguments = $"-i {i}.mp3 -v quiet -print_format json -show_format -hide_banner",
                         UseShellExecute = false,
                         RedirectStandardError = true,
