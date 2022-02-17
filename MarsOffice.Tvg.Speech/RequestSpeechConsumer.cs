@@ -10,7 +10,7 @@ using MarsOffice.Tvg.Speech.Abstractions;
 using MarsOffice.Tvg.Speech.Entities;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
-using Microsoft.Azure.Storage.Queue.Protocol;
+using Microsoft.Azure.Storage.Queue;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -39,12 +39,12 @@ namespace MarsOffice.Tvg.Speech
 
         [FunctionName("RequestSpeechConsumer")]
         public async Task Run(
-            [QueueTrigger("request-speech", Connection = "localsaconnectionstring")] QueueMessage message,
+            [QueueTrigger("request-speech", Connection = "localsaconnectionstring")] CloudQueueMessage message,
             [Queue("speech-result", Connection = "localsaconnectionstring")] IAsyncCollector<SpeechResult> speechResultQueue,
 
             ILogger log)
         {
-            var request = Newtonsoft.Json.JsonConvert.DeserializeObject<RequestSpeech>(message.Text,
+            var request = Newtonsoft.Json.JsonConvert.DeserializeObject<RequestSpeech>(message.AsString,
                     new Newtonsoft.Json.JsonSerializerSettings
                     {
                         ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver(),
