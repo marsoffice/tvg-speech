@@ -64,7 +64,7 @@ namespace MarsOffice.Tvg.Speech
                     RedirectStandardOutput = true
                 };
                 var chmod1Process = Process.Start(chmodPsi1);
-                chmod1Process.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds);
+                chmod1Process.WaitForExit((int)TimeSpan.FromSeconds(5 * 60).TotalMilliseconds);
                 if (chmod1Process.ExitCode != 0)
                 {
                     throw new Exception("Could not execute chmod 1");
