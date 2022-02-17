@@ -10,6 +10,7 @@ using MarsOffice.Tvg.Speech.Abstractions;
 using MarsOffice.Tvg.Speech.Entities;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
+using Microsoft.Azure.Storage.Queue.Protocol;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -38,11 +39,17 @@ namespace MarsOffice.Tvg.Speech
 
         [FunctionName("RequestSpeechConsumer")]
         public async Task Run(
-            [QueueTrigger("request-speech", Connection = "localsaconnectionstring")] RequestSpeech request,
+            [QueueTrigger("request-speech", Connection = "localsaconnectionstring")] QueueMessage message,
             [Queue("speech-result", Connection = "localsaconnectionstring")] IAsyncCollector<SpeechResult> speechResultQueue,
 
             ILogger log)
         {
+            var request = Newtonsoft.Json.JsonConvert.DeserializeObject<RequestSpeech>(message.Text,
+                    new Newtonsoft.Json.JsonSerializerSettings
+                    {
+                        ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver(),
+                        NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore
+                    });
             var baseUrl = $"https://{_config["location"].Replace(" ", "").ToLower()}.tts.speech.microsoft.com/cognitiveservices";
             string tempFolderName = null;
             try
@@ -187,16 +194,19 @@ namespace MarsOffice.Tvg.Speech
             catch (Exception e)
             {
                 log.LogError(e, "Function threw an exception");
-                await speechResultQueue.AddAsync(new SpeechResult
+                if (message.DequeueCount >= 5)
                 {
-                    Error = e.Message,
-                    Success = false,
-                    JobId = request.JobId,
-                    VideoId = request.VideoId,
-                    UserEmail = request.UserEmail,
-                    UserId = request.UserId
-                });
-                await speechResultQueue.FlushAsync();
+                    await speechResultQueue.AddAsync(new SpeechResult
+                    {
+                        Error = "SpeechService: " + e.Message,
+                        Success = false,
+                        JobId = request.JobId,
+                        VideoId = request.VideoId,
+                        UserEmail = request.UserEmail,
+                        UserId = request.UserId
+                    });
+                    await speechResultQueue.FlushAsync();
+                }
                 throw;
             }
             finally
