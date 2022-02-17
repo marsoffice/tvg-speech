@@ -197,6 +197,7 @@ namespace MarsOffice.Tvg.Speech
                     UserId = request.UserId
                 });
                 await speechResultQueue.FlushAsync();
+                throw;
             }
             finally
             {
