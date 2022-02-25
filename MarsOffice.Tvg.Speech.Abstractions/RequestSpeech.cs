@@ -11,8 +11,8 @@ namespace MarsOffice.Tvg.Speech.Abstractions
         public string UserId { get; set; }
         public string UserEmail { get; set; }
         public IEnumerable<string> Sentences { get; set; }
-        public float? SpeechPitch { get; set; }
-        public float? SpeechSpeed { get; set; }
+        public double? SpeechPitch { get; set; }
+        public double? SpeechSpeed { get; set; }
         public string SpeechLanguage { get; set; }
         public string SpeechType { get; set; }
         public long? SpeechPauseBeforeInMillis { get; set; }
